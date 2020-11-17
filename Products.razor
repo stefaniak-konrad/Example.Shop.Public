@@ -1,0 +1,107 @@
+﻿@page "/"
+
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.WebUtilities
+@using System.Collections.Generic;
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Authentication.Cookies;
+@using System.Threading.Tasks;
+@using MJ24app.Data
+@using MJ24.ServiceLayer.DTO
+@inject IJSRuntime JSRuntime
+@inject MJ24.ServiceLayer.MJ24ServiceClient Client
+@inject NavigationManager nav
+@inject HttpContextAccessor httpContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+@if (AllProducts != null)
+{
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
+            <h2 class="h3 mb-0 pt-3 mr-2">
+                Produkty
+            </h2>
+        </div>
+        <div class="row">
+            @foreach (var product in AllProducts)
+            {
+                <div class="col-lg-4 col-md-5 col-sm-6">
+                    <NavLink class="nav-link" href="@($"/item?id={product.Id}")">
+                        <div class="card product-card MyZoom" style="max-height:425px; min-height:425px; border-color:snow;">
+                            <div class="myDiv">
+                                <a class="card-img-top pb-1">
+                                    <center>
+                                        <img src="@($"/images/lozka/{product.Id}.jpg")" alt="product" />
+                                    </center>
+                                </a>
+                                <div class="card-body py-2">
+                                    <a class="product-meta d-block pb-1" style="font-size:small; color:gray">@product.Kategoria</a>
+                                    <h5 class="product-title font-size-sm"style="color:black;">
+                                        @product.Name
+                                    </h5>
+                                    <div class="d-flex justify-content-between">
+                                        <div class="product-price" style="color:red;">
+                                            @product.Price zł
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </NavLink>
+                    
+                </div>
+            }
+        </div>
+    </div>
+}
+<br />
+<br />
+
+
+
+@code {
+    private System.Security.Claims.ClaimsPrincipal User;
+
+    // kaskadowe parametry i wartości spływają w dół całego drzewa komponentów
+    [CascadingParameter] CartStateProvider CartStateProvider { get; set; }
+
+    int CartItemIndex = 0;
+    string Quantity = "1";
+    List<ProductDTO> AllProducts;
+    ProductDTO SelectedProduct;
+
+
+    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
+    protected override void OnInitialized()
+    {
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync();
+        User = authState.Result.User;
+
+        //pobieranie całego asortymentu
+        AllProducts = new List<ProductDTO>();
+        AllProducts = Client.GetAsortyment();
+
+        var uri = nav.ToAbsoluteUri(nav.Uri);
+        var i = QueryHelpers.ParseQuery(uri.Query).TryGetValue("x", out var idUser);
+        if (nav.Uri != $"{nav.BaseUri}")
+        {
+            // utwóż nową pozycje do koszyka
+            var item = new UserModel
+            {
+                UserId = Convert.ToInt32(idUser)
+            };
+            // dodaj do koszyka
+            CartStateProvider.userModel = item;
+            // zapisz w pamiei lokalnej
+            CartStateProvider.SaveUserId();
+        }
+
+    }
+
+
+}
+

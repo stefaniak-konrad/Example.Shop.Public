@@ -1,0 +1,229 @@
+﻿@page "/item"
+
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.WebUtilities
+@using System.Collections.Generic;
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Authentication.Cookies;
+@using System.Threading.Tasks;
+@using MJ24app.Data
+@using MJ24.ServiceLayer.DTO
+@inject IJSRuntime JSRuntime
+@inject MJ24.ServiceLayer.MJ24ServiceClient Client
+@inject NavigationManager nav
+@inject HttpContextAccessor httpContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<head>
+    <link type="text/css" rel="stylesheet" charset="UTF-8" href="https://translate.googleapis.com/translate_static/css/translateelement.css">
+</head>
+
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 col-sm-12 col-xs-12 clearfix">
+            <figure id="full-size-view">
+                <img title="@Product.Name" src="@($"/images/lozka/{Product.Id}.jpg")" />
+            </figure>
+        </div>
+        <section class="col-md-6 col-sm-12 col-xs-12">
+            <header>
+                <h1 class="h3 text-center">
+                    @Product.Name
+                </h1>
+                <div>
+                    <div class="content clearfix">
+                        <center>
+                            <p style="color:red; font-size:x-large">
+                                @Product.Price zł brutto
+                            </p>
+                        </center>
+                    </div>
+                    <div class="infos">
+                        <p id="ean">
+                            EAN-13:
+                            <span style="float:right">Kod ean</span>
+                        </p>
+                        <p id="dostawa">
+                            Dostawa:
+                            <span style="float:right; color:red;">do 10 dni roboczych</span>
+                        </p>
+                        <p id="koszt-dostawy">
+                            Koszt dostawy:
+                            <span style="float:right"> darmowa dostawa na terenie całej Polski</span>
+                        </p>
+                    </div>
+                    @*<div class="product-attributes clearfix">
+            <div id="attributes">
+                <fieldset class="color-group">
+                    <label>Kolorystyka</label>
+                    <label style="float:right">
+                        Wybrano:
+                        <span> Wstawianie koloru</span>
+                    </label>
+                    <div class="attribute_list">
+                        <ul id="color-list" class="clearfix">
+                            <li>
+                                <a style="position:relative" title="wstawic tytuł!!!"></a>
+                            </li>
+                        </ul>
+                    </div>
+                </fieldset>
+            </div>
+        </div>*@
+                    @if (User.Identity.Name != null)
+                    {
+                        <div class="box-cart clearfix">
+                            <div id="quantity" class="col-md-6" style="margin-left:-15px">
+                                <label>Ilość</label>
+                                <table>
+                                    <tr>
+                                        <td>
+                                            <input @bind="Quantity" class="quantityInput" />
+                                        </td>
+                                        <td>
+                                            <div @onclick="@(e => AddToCart(Product.Id))" type="button" class="btn btn-outline-danger" style="color: black; border-color: black;">
+                                                <font style="vertical-align: inherit;">
+                                                    <font style="vertical-align: inherit;">Dodaj do koszyka </font>
+                                                    <svg width="1.5em" height="1.5em" viewBox="0 0 16 16" class="bi bi-cart-plus" fill="currentColor" xmlns="http://www.w3.org/2000/svgborder-color:black;">
+                                                        <path fill-rule="evenodd" d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm7 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" />
+                                                        <path fill-rule="evenodd" d="M8.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H9v1.5a.5.5 0 0 1-1 0V8H6.5a.5.5 0 0 1 0-1H8V5.5a.5.5 0 0 1 .5-.5z" />
+                                                    </svg>
+                                                </font>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </header>
+        </section>
+
+    </div>
+
+    <hr style="background:red" />
+
+    <div class="row" style="margin-bottom:25px;">
+        <section class="col-md-6 border">
+            <header>
+                <h3 class="item_header">
+                    Więcej informcji
+                </h3>
+            </header>
+            <hr style="background:red" />
+            <section class="rte">
+                <div id="opis">
+                    @Product.Description
+                </div>
+            </section>
+        </section>
+
+        <div class="col-md-6">
+            <div class="panel-defaul open border">
+                <div class="panel-headin">
+                    <h3 class="item_header">
+                        Wymiary
+                    </h3>
+                </div>
+                <hr style="background:red" />
+                <div id="product-technical-img" class="panel-collapse" aria-expanded="true">
+                    <div class="panel-body">
+                        <div class="panel-body image">
+                            <img title="@Product.Name" src="@($"/images/lozka/{Product.Id}-tech.jpg")" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="panel datasheet border" style="margin-top:5px;">
+                <header class="my-style">
+                    <h3 class="item_header">
+                        Dane techniczne
+                    </h3>
+                </header>
+                <table class="border" style="width:100%;">
+                    <tbody>
+                        <tr class="odd">
+                            <td class="border-right">Szerokość</td>
+                            <td>  Tutaj wstawiam dane</td>
+                        </tr>
+                        <tr class="even1">
+                            <td class="border-right">Wysokość</td>
+                            <td>  Tutaj wstawiam dane</td>
+                        </tr>
+                        <tr class="odd">
+                            <td class="border-right">Głębokość</td>
+                            <td>  Tutaj wstawiam dane</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+    </div>
+</div>
+
+
+
+@code {
+        private System.Security.Claims.ClaimsPrincipal User;
+
+        // kaskadowe parametry i wartości spływają w dół całego drzewa komponentów
+        [CascadingParameter] CartStateProvider CartStateProvider { get; set; }
+
+        int CartItemIndex = 0;
+        string Quantity = "1";
+        ItemDTO Product;
+        ProductDTO SelectedProduct;
+
+        [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
+        protected override void OnInitialized()
+        {
+            var authState = AuthenticationStateProvider.GetAuthenticationStateAsync();
+            User = authState.Result.User;
+
+            var uri = nav.ToAbsoluteUri(nav.Uri);
+            var i = QueryHelpers.ParseQuery(uri.Query).TryGetValue("id", out var ItemId);
+
+            //pobieranie żądanego przedmiotu
+            Product = new ItemDTO();
+            Product = Client.GetItem(Convert.ToInt32(ItemId));
+        }
+
+        [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
+        public async Task AddToCart(int id)
+        {
+            try
+            {
+                SelectedProduct = new ProductDTO(){ 
+                    Id = Product.Id,
+                    Description = Product.Description,
+                    Kategoria = Product.Kategoria,
+                    Name = Product.Name,
+                    Price = Product.Price,
+            };
+
+
+            //pobierz id użytkownika
+            var userId = CartStateProvider.userModel.UserId;
+            // utwóż nową pozycje do koszyka
+            var item = new CartProductModel
+            {
+                Product = SelectedProduct,
+                Quantity = Convert.ToInt32(Quantity),
+                IdUzytkownika = Convert.ToInt32(userId)
+            };
+            // dodaj do koszyka
+            CartStateProvider.ShoppingCart.Items.Add(item);
+            // zapisz w pamiei lokalnej
+            await CartStateProvider.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            ex.ToString();
+        }
+}
+}

@@ -1,0 +1,130 @@
+﻿@page "/kategoria"
+
+@using System;
+@using System.Collections.Generic;
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Authentication.Cookies;
+@using System.Threading.Tasks;
+@using Microsoft.AspNetCore.Components
+@using MJ24.ServiceLayer.DTO
+@using Microsoft.AspNetCore.Http
+@using Microsoft.Extensions.Configuration;
+@using Microsoft.AspNetCore.WebUtilities
+@inject MJ24.ServiceLayer.MJ24ServiceClient Client
+@inject NavigationManager nav
+@inject HttpContextAccessor httpContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IConfiguration Conf
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+@if (AllProducts != null)
+{
+    //Wyświetl listę produktów.
+    @foreach (var product in allProducts)
+    {
+        <div class="col-lg-4 col-md-5 col-sm-6">
+            <NavLink class="nav-link" href="@($"/item?id={product.Id}")">
+                <div class="card product-card MyZoom" style="max-height:425px; min-height:425px; border-color:snow;">
+                    <div class="myDiv">
+                        <a class="card-img-top pb-1">
+                            <center>
+                                <img src="@($"/images/lozka/{product.Id}.jpg")" alt="product" />
+                            </center>
+                        </a>
+                        <div class="card-body py-2">
+                            <a class="product-meta d-block pb-1" style="font-size:small; color:gray">@product.Kategoria</a>
+                            <h5 class="product-title font-size-sm" style="color:black">
+                                @product.Name
+                            </h5>
+                            <div class="d-flex justify-content-between">
+                                <div class="product-price" style="color:red;">
+                                    @product.Price zł
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </NavLink>
+        </div>
+    }
+}
+
+@code {
+    private System.Security.Claims.ClaimsPrincipal User;
+
+    // kaskadowe parametry i wartości spływają w dół całego drzewa komponentów
+    [CascadingParameter] CartStateProvider CartStateProvider { get; set; }
+
+    int CartItemIndex = 0;
+    string Quantity = "1";
+    List<ProductDTO> AllProducts;
+    public List<ProductDTO> allProducts;
+    ProductDTO selectedProduct;
+
+    [Parameter]
+    public string kat { get; set; }
+
+    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
+    protected override void OnInitialized()
+    {
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync();
+        User = authState.Result.User;
+
+        //pobieranie kategorii asortymentu
+        var uri = nav.ToAbsoluteUri(nav.Uri);
+
+        //jeśli parametr url "kat" nie jest pusty
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("kat", out var kat))
+        {
+            AllProducts = new List<ProductDTO>();
+            allProducts = new List<ProductDTO>();
+            AllProducts = Client.GetAsortyment();
+
+            for (int a = 0; a < AllProducts.Count; a++)
+            {
+                var m = AllProducts[a];
+                if (m.Kategoria.ToLower() == kat)
+                {
+                    allProducts.Add(new ProductDTO()
+                    {
+                        Name = m.Name,
+                        Description = m.Description,
+                        Id = m.Id,
+                        Kategoria = m.Kategoria,
+                        Price = m.Price
+                    });
+                }
+            }
+        }
+    }
+
+    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
+    public async Task AddToCart(int id)
+    {
+        try
+        {
+            selectedProduct = (from x in AllProducts
+                               where x.Id == Convert.ToInt32(id)
+                               select x).First();
+            //pobierz id użytkownika
+            var userId = CartStateProvider.userModel.UserId;
+            // utwóż nową pozycje do koszyka
+            var item = new CartProductModel
+            {
+                Product = selectedProduct,
+                Quantity = Convert.ToInt32(Quantity),
+                IdUzytkownika = Convert.ToInt32(userId)
+            };
+            // dodaj do koszyka
+            CartStateProvider.ShoppingCart.Items.Add(item);
+            // zapisz w pamiei lokalnej
+            await CartStateProvider.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            ex.ToString();
+        }
+    }
+}
